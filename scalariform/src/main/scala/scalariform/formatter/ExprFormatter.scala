@@ -846,6 +846,57 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     formatResult
   }
 
+  /**
+   *
+   * @param param
+   * @return Three Ints representing the length of the longest prefix, longest parameter name, and longest type.
+   */
+  private def calculateParamSectionLengths(param: Param): (Int, Int, Int) = {
+    val Param(annotations, modifiers, valOrVarOpt, id, paramTypeOpt, defaultValueOpt) = param
+
+    // Calculate longest "prefix" length. Annotations, modifiers, and val/var contribute
+    // to this number.
+    val prefixTokens = annotations.flatMap(_.tokens) ++
+      modifiers.flatMap(_.tokens) ++
+      valOrVarOpt
+    val prefixTokenLength = prefixTokens.view.map(token => if (token.isNewline) 0 else token.length).sum
+
+    // Calculate longest "type" length.
+    var typeLength = 0
+    for ((x, y) <- paramTypeOpt) {
+      x.length + y.tokens.view.map(token => if (token.isNewline) 0 else token.length).sum
+    }
+
+    (prefixTokenLength, id.length, typeLength)
+  }
+
+  /**
+   * For parameters that are on new lines...
+   *
+   * 1. figure out
+   * - longest annotation + modifier length
+   * - longest parameter name
+   * - and longest type.
+   * If the first param is on the same line as the opening parenthesis, this param might have the "longest" annotation+modifier length...
+   *
+   * 2. Figure out location / indent level for each of the parameters found in #1
+   *
+   * 3. For every other parameter, figure out how many spaces are needed to indent:
+   * - the annotation + modifier length to meet the end of the longest annotation + modifier length:
+   * - the type
+   * - the colon before the type declaration to meet the position of the colon of the longest parameter name
+   *   {{{
+   *     // In this example, the "short" param needs to be indented 24 chars, "short" would have to be indented
+   *     // 2 extra chars to align the colons, and the "=" in the "longest" param would need to be indented
+   *     // 3 extra characters to align the equal signs.
+   *     @annotation override val longest: Int = 1
+   *     @a short: String = "Hi"
+   *
+   *     // This is what it would look like after everything is aligned.
+   *     @annotation override val longest: Int    = 1
+   *                           @a   short: String = "Hi"
+   *   }}}
+   */
   private def formatParamClause(paramClause: ParamClause, doubleIndentParams: Boolean = false)(implicit formatterState: FormatterState): (FormatResult, FormatterState) = {
     val ParamClause(lparen, implicitOption, firstParamOption, otherParams, rparen) = paramClause
     val paramIndent = if (doubleIndentParams) 2 else 1
@@ -853,6 +904,20 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     var formatResult: FormatResult = NoFormatResult
     var paramFormatterState = formatterState
     val alignParameters = formattingPreferences(AlignParameters) && !formattingPreferences(IndentWithTabs)
+
+    var (longestPrefix, longestId, longestType) = (0, 0, 0)
+
+    val paramsList = firstParamOption ++ otherParams.map { case (comma, param) => param }
+
+    for (param <- paramsList) {
+      val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param)
+      println(longestPrefix)
+      longestPrefix = math.max(longestPrefix, prefixLength)
+      longestId = math.max(longestId, idLength)
+      longestType = math.max(longestType, typeLength)
+    }
+
+
     for (firstParam ← firstParamOption) {
       val token = implicitOption getOrElse firstParam.firstToken
       if (hiddenPredecessors(token).containsNewline) {
@@ -877,12 +942,23 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
   private def format(param: Param)(implicit formatterState: FormatterState): FormatResult = {
     val Param(annotations: List[Annotation], modifiers: List[Modifier], valOrVarOpt: Option[Token], id: Token, paramTypeOpt: Option[(Token, Type)], defaultValueOpt: Option[(Token, Expr)]) = param
     var formatResult: FormatResult = NoFormatResult
-    for (annotation ← annotations)
+    for (annotation ← annotations) {
+      val Annotation(atToken: Token, annotationType: Type, argumentExprss: List[ArgumentExprs], newlineOption: Option[Token]) = annotation
+
+      formatResult = formatResult.before(atToken, PlaceAtColumn(formatterState.indentLevel, 20))
+
       formatResult ++= format(annotation)
-    for ((colon, paramType) ← paramTypeOpt)
+    }
+    for ((colon, paramType) ← paramTypeOpt) {
+      formatResult = formatResult.before(paramType.tokens.head, PlaceAtColumn(0,50))
       formatResult ++= format(paramType)
-    for ((equals, expr) ← defaultValueOpt)
+    }
+    for ((equals, expr) ← defaultValueOpt) {
+      formatResult = formatResult.before(equals, PlaceAtColumn(0,70))
       formatResult ++= format(expr)
+    }
+//    println(formatResult)
+
     formatResult
   }
 
