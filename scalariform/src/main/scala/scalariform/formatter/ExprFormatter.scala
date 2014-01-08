@@ -856,17 +856,34 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     // Calculate longest "prefix" length. Annotations, modifiers, and val/var contribute
     // to this number.
-    val prefixTokens = annotations.flatMap(_.tokens) ++
-      modifiers.flatMap(_.tokens) ++
+    var prefixLength = 0
+    val wtf = for {
+      annotation <- annotations
+      tokens = annotation.tokens
+      token <- tokens
+      if !token.isNewline
+    } yield {
+      prefixLength += token.length
+      (token, hiddenPredecessors(token).whitespaces)
+    }
+
+    val prefixTokens = annotations.flatMap(_.tokens.filter(!_.isNewline)) ++
+      modifiers.flatMap(_.tokens.filter(!_.isNewline)) ++
       valOrVarOpt
-    val prefixTokenLength = prefixTokens.view.map(token => if (token.isNewline) 0 else token.length).sum
+    val prefixTokenLength = prefixTokens.view.map(_.length).sum
+
+    prefixTokens.foreach {x => println(hiddenPredecessors(x))}
 
     // Calculate longest "type" length.
     var typeLength = 0
     for ((x, y) <- paramTypeOpt) {
-      x.length + y.tokens.view.map(token => if (token.isNewline) 0 else token.length).sum
+      typeLength = x.length + y.tokens.view.map { token =>
+        if (token.isNewline)
+          0
+        else
+          token.length
+      }.sum
     }
-
     (prefixTokenLength, id.length, typeLength)
   }
 
@@ -911,12 +928,10 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     for (param <- paramsList) {
       val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param)
-      println(longestPrefix)
       longestPrefix = math.max(longestPrefix, prefixLength)
       longestId = math.max(longestId, idLength)
       longestType = math.max(longestType, typeLength)
     }
-
 
     for (firstParam ← firstParamOption) {
       val token = implicitOption getOrElse firstParam.firstToken
