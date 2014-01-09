@@ -851,40 +851,26 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
    * @param param
    * @return Three Ints representing the length of the longest prefix, longest parameter name, and longest type.
    */
-  private def calculateParamSectionLengths(param: Param): (Int, Int, Int) = {
+  private def calculateParamSectionLengths(param: Param, implicitOpt: Option[Token] = None): (Int, Int, Int) = {
     val Param(annotations, modifiers, valOrVarOpt, id, paramTypeOpt, defaultValueOpt) = param
 
     // Calculate longest "prefix" length. Annotations, modifiers, and val/var contribute
     // to this number.
-    var prefixLength = 0
-    val wtf = for {
-      annotation <- annotations
-      tokens = annotation.tokens
-      token <- tokens
-      if !token.isNewline
-    } yield {
-      prefixLength += token.length
-      (token, hiddenPredecessors(token).whitespaces)
-    }
-
-    val prefixTokens = annotations.flatMap(_.tokens.filter(!_.isNewline)) ++
-      modifiers.flatMap(_.tokens.filter(!_.isNewline)) ++
+    var prefixLength = 1
+    val allPrefixTokens = implicitOpt ++
+      annotations.flatMap(_.tokens) ++
+      modifiers.flatMap(_.tokens) ++
       valOrVarOpt
-    val prefixTokenLength = prefixTokens.view.map(_.length).sum
-
-    prefixTokens.foreach {x => println(hiddenPredecessors(x))}
+    allPrefixTokens.filter(!_.isNewline).foreach {
+      prefixLength += _.length
+    }
 
     // Calculate longest "type" length.
     var typeLength = 0
-    for ((x, y) <- paramTypeOpt) {
-      typeLength = x.length + y.tokens.view.map { token =>
-        if (token.isNewline)
-          0
-        else
-          token.length
-      }.sum
+    for ((colon, typeTokens) <- paramTypeOpt) {
+      typeLength = typeTokens.tokens.view.takeWhile(!_.isNewline).map(_.length).sum
     }
-    (prefixTokenLength, id.length, typeLength)
+    (prefixLength, id.length, typeLength)
   }
 
   /**
@@ -926,27 +912,53 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     val paramsList = firstParamOption ++ otherParams.map { case (comma, param) => param }
 
-    for (param <- paramsList) {
+    var firstParamProcessed = false
+
+    for (param <- firstParamOption) {
+      val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param, implicitOption)
+      longestPrefix = math.max(longestPrefix, prefixLength)
+      longestId     = math.max(longestId, idLength)
+      longestType   = math.max(longestType, typeLength)
+    }
+    for ((_, param) <- otherParams) {
       val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param)
       longestPrefix = math.max(longestPrefix, prefixLength)
-      longestId = math.max(longestId, idLength)
-      longestType = math.max(longestType, typeLength)
+      longestId     = math.max(longestId, idLength)
+      longestType   = math.max(longestType, typeLength)
     }
+
+    println("longestPrefix:"+longestPrefix)
+    println("longestId:"+longestId)
+    println("longestType:"+longestType)
 
     for (firstParam ← firstParamOption) {
       val token = implicitOption getOrElse firstParam.firstToken
+      formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
+
       if (hiddenPredecessors(token).containsNewline) {
         formatResult = formatResult.before(token, formatterState.indent(paramIndent).currentIndentLevelInstruction)
-        paramFormatterState = if (alignParameters) formatterState.alignWithToken(relativeToken) else formatterState.indent(paramIndent)
-      } else if (containsNewline(firstParam) && alignParameters)
+        paramFormatterState = if (alignParameters) {
+          formatterState.alignWithToken(relativeToken)
+        } else {
+          formatterState.indent(paramIndent)
+        }
+      } else if (containsNewline(firstParam) && alignParameters) {
         paramFormatterState = formatterState.alignWithToken(relativeToken)
+      }
       formatResult ++= format(firstParam)(paramFormatterState)
     }
 
     for ((comma, param) ← otherParams) {
       val token = param.firstToken
+
+      formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
+
       if (hiddenPredecessors(token).containsNewline) {
-        paramFormatterState = if (alignParameters) formatterState.alignWithToken(relativeToken) else formatterState.indent(paramIndent)
+        paramFormatterState = if (alignParameters) {
+          formatterState.alignWithToken(relativeToken)
+        } else {
+          formatterState.indent(paramIndent)
+        }
         formatResult = formatResult.before(token, paramFormatterState.currentIndentLevelInstruction)
       }
       formatResult ++= format(param)(paramFormatterState)
@@ -957,23 +969,17 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
   private def format(param: Param)(implicit formatterState: FormatterState): FormatResult = {
     val Param(annotations: List[Annotation], modifiers: List[Modifier], valOrVarOpt: Option[Token], id: Token, paramTypeOpt: Option[(Token, Type)], defaultValueOpt: Option[(Token, Expr)]) = param
     var formatResult: FormatResult = NoFormatResult
+
+
     for (annotation ← annotations) {
-      val Annotation(atToken: Token, annotationType: Type, argumentExprss: List[ArgumentExprs], newlineOption: Option[Token]) = annotation
-
-      formatResult = formatResult.before(atToken, PlaceAtColumn(formatterState.indentLevel, 20))
-
       formatResult ++= format(annotation)
     }
     for ((colon, paramType) ← paramTypeOpt) {
-      formatResult = formatResult.before(paramType.tokens.head, PlaceAtColumn(0,50))
       formatResult ++= format(paramType)
     }
     for ((equals, expr) ← defaultValueOpt) {
-      formatResult = formatResult.before(equals, PlaceAtColumn(0,70))
       formatResult ++= format(expr)
     }
-//    println(formatResult)
-
     formatResult
   }
 
