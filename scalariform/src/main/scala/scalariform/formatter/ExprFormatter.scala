@@ -856,7 +856,7 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     // Calculate longest "prefix" length. Annotations, modifiers, and val/var contribute
     // to this number.
-    var prefixLength = 1
+    var prefixLength = 0
     val allPrefixTokens = implicitOpt ++
       annotations.flatMap(_.tokens) ++
       modifiers.flatMap(_.tokens) ++
@@ -865,12 +865,29 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
       prefixLength += _.length
     }
 
+    // Account for whitespace between prefix token types. This assumes everything
+    // will be placed on a single line with no newlines between prefixes.
+    val numberOfPrefixTypes = Seq(
+      implicitOpt.isDefined,
+      !annotations.isEmpty,
+      valOrVarOpt.isDefined
+    ).count(_ == true) + modifiers.length
+    if (numberOfPrefixTypes > 0)
+      prefixLength += numberOfPrefixTypes - 1
+
+    // Account for the colon (and possible space) after the parameter's name
+    val idLength = if (formattingPreferences(SpaceBeforeColon))
+      id.length + 2
+    else
+      id.length + 1
+
     // Calculate longest "type" length.
     var typeLength = 0
     for ((colon, typeTokens) <- paramTypeOpt) {
       typeLength = typeTokens.tokens.view.takeWhile(!_.isNewline).map(_.length).sum
     }
-    (prefixLength, id.length, typeLength)
+
+    (prefixLength, idLength, typeLength)
   }
 
   /**
@@ -911,8 +928,6 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     var (longestPrefix, longestId, longestType) = (0, 0, 0)
 
     val paramsList = firstParamOption ++ otherParams.map { case (comma, param) => param }
-
-    var firstParamProcessed = false
 
     for (param <- firstParamOption) {
       val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param, implicitOption)
