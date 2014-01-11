@@ -162,147 +162,147 @@ class CaseClausesFormatterTest extends AbstractExpressionFormatterTest {
     |  case zzz    => 3
     |}"""
 
-//  """a match {
-//    |case b => 1; case c => 2
-//    |}""" ==>
-//  """a match {
-//    |  case b => 1; case c => 2
-//    |}"""
-//
-//  """a match { case b => 1;
-//    |case ccc => 2}""" ==>
-//  """a match {
-//    |  case b   => 1;
-//    |  case ccc => 2
-//    |}"""
-//
-//  """a match {
-//    |  case b /* comment */ => 1
-//    |  case c => 2
-//    |}""" ==>
-//  """a match {
-//    |  case b /* comment */ => 1
-//    |  case c               => 2
-//    |}"""
+  """a match {
+    |case b => 1; case c => 2
+    |}""" ==>
+  """a match {
+    |  case b => 1; case c => 2
+    |}"""
 
-//  """a match {
-//    |  case b
-//    |=> 1
-//    |  case ccc => 2
-//    |}""" ==>
-//  """a match {
-//    |  case b   => 1
-//    |  case ccc => 2
-//    |}"""
-//
-//  """a match {
-//    |  case b =>
-//    | 1
-//    |  case cc => 2
-//    |}""" ==>
-//  """a match {
-//    |  case b =>
-//    |    1
-//    |  case cc => 2
-//    |}"""
-//
-//  "{ case a=> b }" ==> "{ case a => b }"}
-//
-//  """t match {
-//    |  case Cell [ a ] (x: Int) => c.x = 5
-//    |}""" ==>
-//  """t match {
-//    |  case Cell[a](x: Int) => c.x = 5
-//    |}"""
+  """a match { case b => 1;
+    |case ccc => 2}""" ==>
+  """a match {
+    |  case b   => 1;
+    |  case ccc => 2
+    |}"""
+
+  """a match {
+    |  case b /* comment */ => 1
+    |  case c => 2
+    |}""" ==>
+  """a match {
+    |  case b /* comment */ => 1
+    |  case c               => 2
+    |}"""
+
+  """a match {
+    |  case b
+    |=> 1
+    |  case ccc => 2
+    |}""" ==>
+  """a match {
+    |  case b   => 1
+    |  case ccc => 2
+    |}"""
+
+  """a match {
+    |  case b =>
+    | 1
+    |  case cc => 2
+    |}""" ==>
+  """a match {
+    |  case b =>
+    |    1
+    |  case cc => 2
+    |}"""
+
+  "{ case a=> b }" ==> "{ case a => b }"}
+
+  """t match {
+    |  case Cell [ a ] (x: Int) => c.x = 5
+    |}""" ==>
+  """t match {
+    |  case Cell[a](x: Int) => c.x = 5
+    |}"""
 
 
-//  {
-//  implicit val formattingPreferences =
-//    FormattingPreferences.setPreference(AlignSingleLineCaseStatements, true).setPreference(RewriteArrowSymbols, true)
-//
-//  """a match {
-//    |case b => 42
-//    |case ccc => 24
-//    |}""" ==>
-//  """a match {
-//    |  case b   ⇒ 42
-//    |  case ccc ⇒ 24
-//    |}"""
+  {
+  implicit val formattingPreferences =
+    FormattingPreferences.setPreference(AlignSingleLineCaseStatements, true).setPreference(RewriteArrowSymbols, true)
+
+  """a match {
+    |case b => 42
+    |case ccc => 24
+    |}""" ==>
+  """a match {
+    |  case b   ⇒ 42
+    |  case ccc ⇒ 24
+    |}"""
   }
 
-//  {
-//
-//  implicit val formattingPreferences =
-//    FormattingPreferences
-//      .setPreference(AlignSingleLineCaseStatements, true)
-//      .setPreference(AlignSingleLineCaseStatements.MaxArrowIndent, 5)
-//
-//  """x match {
-//    |  case 123456789 => a
-//    |  case _ => b
-//    |}""" ==>
-//  """x match {
-//    |  case 123456789 => a
-//    |  case _ => b
-//    |}"""
-//
-//  }
+  {
 
-//  """a match {
-//    |  case true => {
-//    |    case true => false
-//    |    case false => true
-//    |  }
-//    |  case false => b match {
-//    |    case true => true
-//    |    case false => false
-//    |  }
-//    |}""" ==>
-//  """a match {
-//    |  case true => {
-//    |    case true => false
-//    |    case false => true
-//    |  }
-//    |  case false => b match {
-//    |    case true => true
-//    |    case false => false
-//    |  }
-//    |}"""
+  implicit val formattingPreferences =
+    FormattingPreferences
+      .setPreference(AlignSingleLineCaseStatements, true)
+      .setPreference(AlignSingleLineCaseStatements.MaxArrowIndent, 5)
 
+  """x match {
+    |  case 123456789 => a
+    |  case _ => b
+    |}""" ==>
+  """x match {
+    |  case 123456789 => a
+    |  case _ => b
+    |}"""
 
-//  "{ case a ::(b) ⇒ }" ==>
-//  "{ case a :: (b) ⇒ }"
+  }
 
-//  """{
-//    |  case a ⇒
-//    |    {
-//    |      a
-//    |    }
-//    |}""" ==>
-//  """{
-//    |  case a ⇒
-//    |    {
-//    |      a
-//    |    }
-//    |}"""
+  """a match {
+    |  case true => {
+    |    case true => false
+    |    case false => true
+    |  }
+    |  case false => b match {
+    |    case true => true
+    |    case false => false
+    |  }
+    |}""" ==>
+  """a match {
+    |  case true => {
+    |    case true => false
+    |    case false => true
+    |  }
+    |  case false => b match {
+    |    case true => true
+    |    case false => false
+    |  }
+    |}"""
 
 
-//  {
-//  implicit val formattingPreferences = FormattingPreferences.setPreference(SpacesWithinPatternBinders, false)
-//
-//  """(a: @switch)  match {
-//    |case elem@Multi(values@_*) =>
-//    |}""" ==>
-//  """(a: @switch) match {
-//    |  case elem@Multi(values@_*) =>
-//    |}"""
-//  }
+  "{ case a ::(b) ⇒ }" ==>
+  "{ case a :: (b) ⇒ }"
 
-//  """(a: @switch)  match {
-//    |case elem@Multi(values@_*) =>
-//    |}""" ==>
-//  """(a: @switch) match {
-//    |  case elem @ Multi(values @ _*) =>
-//    |}"""
+  """{
+    |  case a ⇒
+    |    {
+    |      a
+    |    }
+    |}""" ==>
+  """{
+    |  case a ⇒
+    |    {
+    |      a
+    |    }
+    |}"""
+
+
+  {
+  implicit val formattingPreferences = FormattingPreferences.setPreference(SpacesWithinPatternBinders, false)
+
+  """(a: @switch)  match {
+    |case elem@Multi(values@_*) =>
+    |}""" ==>
+  """(a: @switch) match {
+    |  case elem@Multi(values@_*) =>
+    |}"""
+  }
+
+  """(a: @switch)  match {
+    |case elem@Multi(values@_*) =>
+    |}""" ==>
+  """(a: @switch) match {
+    |  case elem @ Multi(values @ _*) =>
+    |}"""
 
 }

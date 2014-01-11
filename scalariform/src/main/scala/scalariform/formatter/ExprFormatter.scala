@@ -4,7 +4,7 @@ import scalariform.lexer.Chars
 import scalariform.lexer.Token
 import scalariform.lexer.Tokens._
 import scalariform.parser._
-import scalariform.utils.Utils
+import scalariform.utils.{TextEditProcessor, Utils}
 import scalariform.formatter.preferences._
 import scala.PartialFunction._
 
@@ -846,12 +846,53 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     formatResult
   }
 
+  private def groupParams(paramClause: ParamClause)(implicit formatterState: FormatterState): List[Either[ConsecutiveSingleLineParam, Param]] = {
+    var (longestPrefix, longestId, longestType) = (0, 0, 0)
+    val ParamClause(lparen, implicitOption, firstParamOption, otherParams, rparen) = paramClause
+
+    val paramsList = firstParamOption ++ otherParams.map { case (comma, param) => param }
+
+    var isFirstParam = true
+    for (param <- paramsList) {
+
+      val formattedParam = {
+        val source = getSource(param)
+        val paramFormatResult = format(param)(formatterState)
+        val offset = param.firstToken.offset
+        val edits = writeTokens(source, param.tokens, paramFormatResult, offset)
+        TextEditProcessor.runEdits(source, edits)
+      }
+
+      println(formattedParam)
+
+      val implicitOpt = if (isFirstParam)
+        implicitOption
+      else
+        None
+
+      val ParamSectionLengths(prefixLength, idLength, typeLength) = calculateParamSectionLengths(param, implicitOpt)
+      longestPrefix = math.max(longestPrefix, prefixLength)
+      longestId     = math.max(longestId, idLength)
+      longestType   = math.max(longestType, typeLength)
+    }
+
+    println("longestPrefix:"+longestPrefix)
+    println("longestId:"+longestId)
+    println("longestType:"+longestType)
+
+    Nil
+  }
+
+  private case class ConsecutiveSingleLineParam(param: Param, sectionLengths: ParamSectionLengths)
+
+  private case class ParamSectionLengths(prefixLength: Int, idLength: Int, typeLength: Int)
+
   /**
    *
    * @param param
    * @return Three Ints representing the length of the longest prefix, longest parameter name, and longest type.
    */
-  private def calculateParamSectionLengths(param: Param, implicitOpt: Option[Token] = None): (Int, Int, Int) = {
+  private def calculateParamSectionLengths(param: Param, implicitOpt: Option[Token] = None): ParamSectionLengths = {
     val Param(annotations, modifiers, valOrVarOpt, id, paramTypeOpt, defaultValueOpt) = param
 
     // Calculate longest "prefix" length. Annotations, modifiers, and val/var contribute
@@ -887,8 +928,9 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
       typeLength = typeTokens.tokens.view.takeWhile(!_.isNewline).map(_.length).sum
     }
 
-    (prefixLength, idLength, typeLength)
+    ParamSectionLengths(prefixLength, idLength, typeLength)
   }
+
 
   /**
    * For parameters that are on new lines...
@@ -925,26 +967,7 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     var paramFormatterState = formatterState
     val alignParameters = formattingPreferences(AlignParameters) && !formattingPreferences(IndentWithTabs)
 
-    var (longestPrefix, longestId, longestType) = (0, 0, 0)
-
-    val paramsList = firstParamOption ++ otherParams.map { case (comma, param) => param }
-
-    for (param <- firstParamOption) {
-      val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param, implicitOption)
-      longestPrefix = math.max(longestPrefix, prefixLength)
-      longestId     = math.max(longestId, idLength)
-      longestType   = math.max(longestType, typeLength)
-    }
-    for ((_, param) <- otherParams) {
-      val (prefixLength, idLength, typeLength) = calculateParamSectionLengths(param)
-      longestPrefix = math.max(longestPrefix, prefixLength)
-      longestId     = math.max(longestId, idLength)
-      longestType   = math.max(longestType, typeLength)
-    }
-
-    println("longestPrefix:"+longestPrefix)
-    println("longestId:"+longestId)
-    println("longestType:"+longestType)
+    groupParams(paramClause)
 
     for (firstParam ← firstParamOption) {
       val token = implicitOption getOrElse firstParam.firstToken
