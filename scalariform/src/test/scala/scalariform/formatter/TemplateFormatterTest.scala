@@ -365,11 +365,11 @@ class TemplateFormatterTest extends AbstractFormatterTest {
     """def extraStuff(
       |// comment1
       |@Annotated paramOne: Int = 1, // comment 2
-      |/* comment 3 */ private val modifiedTwo: Int = 2,
-      |@Annotated2("complicatedAnnotation") @A3("Another") protected annotatedAndModified: Int = 3)""" ==>
+      |/* comment 3 */ private val modifiedTwo: String = "two",
+      |@Annotated2("complicatedAnnotation") @A3("Another") protected annotatedAndModified: Option[Int] = Some(3))""" ==>
       """def extraStuff(
         |                                                     @Annotated             paramOne: Int         = 1,
-        |                                                    private val          modifiedTwo: String      = 2,
+        |                                                    private val          modifiedTwo: String      = "two",
         |  @Annotated2("complicatedAnnotation") @A3("Another") protected annotatedAndModified: Option[Int] = Some(3))"""
 //
 //  """class A(n: Int,
