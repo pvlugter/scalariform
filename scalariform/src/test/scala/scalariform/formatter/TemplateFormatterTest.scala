@@ -320,33 +320,33 @@ class TemplateFormatterTest extends AbstractFormatterTest {
     implicit val formattingPreferences = FormattingPreferences.setPreference(AlignParameters, true)
 
   // Split into 3 columns: name, type, and default
-//  """def showInput[A](
-//    | parent: Component = null,
-//    | message: Any,
-//    | title: String = uiString("OptionPane.inputDialogTitle"),
-//    | messageType: Message.Value = Message.Question,
-//    | icon: Icon = EmptyIcon,
-//    | entries: Seq[A] = Nil,
-//    | initial: A): Option[A]""" ==>
-//  """def showInput[A](
-//    |     parent: Component     = null,
-//    |    message: Any,
-//    |      title: String        = uiString("OptionPane.inputDialogTitle"),
-//    |messageType: Message.Value = Message.Question,
-//    |       icon: Icon          = EmptyIcon,
-//    |    entries: Seq[A]        = Nil,
-//    |    initial: A
-//    |): Option[A]"""
+  """def showInput[A](
+    | parent: Component = null,
+    | message: Any,
+    | title: String = uiString("OptionPane.inputDialogTitle"),
+    | messageType: Message.Value = Message.Question,
+    | icon: Icon = EmptyIcon,
+    | entries: Seq[A] = Nil,
+    | initial: A): Option[A]""" ==>
+  """def showInput[A](
+    |  parent:      Component     = null,
+    |  message:     Any,
+    |  title:       String        = uiString("OptionPane.inputDialogTitle"),
+    |  messageType: Message.Value = Message.Question,
+    |  icon:        Icon          = EmptyIcon,
+    |  entries:     Seq[A]        = Nil,
+    |  initial:     A): Option[A]"""
 
   // Preserve first line spacing
-//  """case class Spacing(param: Int = 1,
-//    |paramTwo: Int = 2
-//    |paramThree: String = "3")""" ==>
-//  """case class Spacing(param: Int    = 1,
-//    |                paramTwo: Int    = 2
-//    |              paramThree: String = "3")"""
+    """case class Spacing(param: Int = 1,
+      |paramTwo: Int = 2,
+      |paramThree: String = "3")""" ==>
+      """case class Spacing(
+        |  param:      Int    = 1,
+        |  paramTwo:   Int    = 2
+        |  paramThree: String = "3")"""
 
-  // Aligns implicits properly
+// Aligns implicits properly
 //    """class SomeClass(
 //      |parameterOne: Int = 1,
 //      |val paramTwo: Option[String] = None,
