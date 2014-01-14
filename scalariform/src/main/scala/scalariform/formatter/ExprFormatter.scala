@@ -854,19 +854,16 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     var isFirstParam = true
 
     paramsList.foldLeft(List[Either[ConsecutiveSingleLineParams, Param]]()) { (groupedParams, nextParam) =>
-      val implicitOpt = if (isFirstParam) {
-        isFirstParam = false
+      val implicitOpt = if (isFirstParam)
         implicitOption
-      } else {
+      else
         None
-      }
 
-      calculateParamSectionLengths(nextParam, isFirstParam, implicitOpt) match {
+      val lengths = calculateParamSectionLengths(nextParam, isFirstParam, implicitOpt) match {
         case Some(sectionLengths) =>
-
           groupedParams match {
             case Right(param) :: tail =>
-              Left(ConsecutiveSingleLineParams(List(nextParam), sectionLengths, sectionLengths)) :: tail
+              Left(ConsecutiveSingleLineParams(List(nextParam), sectionLengths, sectionLengths)) :: groupedParams
             case Left(existingParams) :: tail =>
               Left(existingParams.prepend(nextParam, sectionLengths)) :: tail
             case Nil =>
@@ -875,6 +872,10 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
         case None =>
           Right(nextParam) :: groupedParams
       }
+
+      if (isFirstParam) isFirstParam = false
+
+      lengths
     }
   }
 
@@ -970,7 +971,7 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     val newlineBeforeParam = hiddenPredecessors(param.firstToken).containsNewline
 
-    if (formattedParam.contains('\n') || (!newlineBeforeParam))
+    if (formattedParam.contains('\n') || (!first && !newlineBeforeParam))
       None
     else
       Some(calculateLengths)
@@ -1015,6 +1016,8 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     val groupedParams = groupParams(paramClause)
 
+    println(groupedParams)
+
     groupedParams.foreach {
       case Left(ConsecutiveSingleLineParams(params, maxSectionLengths, thisSectionLengths)) =>
         val prefixSpaces = 0
@@ -1044,7 +1047,6 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
           // Indent Prefix
           formatResult = formatResult.before(firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
-
           formatResult ++= format(param)(paramFormatterState)
         }
       case Right(param) =>
