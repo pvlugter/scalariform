@@ -885,12 +885,13 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     }
   }
 
-  private case class ParamSectionLengths(prefixLength: Int, idLength: Int, typeLength: Int) {
+  private case class ParamSectionLengths(prefixLength: Int, idLength: Int, prefixAndIdLength: Int, typeLength: Int) {
     def max(newParamSectionLength: ParamSectionLengths): ParamSectionLengths = {
-      val ParamSectionLengths(newPrefixLength, newIdLength, newTypeLength) = newParamSectionLength
+      val ParamSectionLengths(newPrefixLength, newIdLength, newPrefixAndIdLength, newTypeLength) = newParamSectionLength
       ParamSectionLengths(
         math.max(prefixLength, newPrefixLength),
         math.max(idLength, newIdLength),
+        math.max(prefixAndIdLength, newPrefixAndIdLength),
         math.max(typeLength, newTypeLength)
       )
     }
@@ -966,7 +967,9 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
         typeLength
       }
 
-      ParamSectionLengths(calculatePrefixLength, calculateIdLength, calculateTypeLength)
+      val prefixLength = calculatePrefixLength
+      val idLength = calculateIdLength
+      ParamSectionLengths(prefixLength, idLength, prefixLength + idLength,calculateTypeLength)
     }
 
     val newlineBeforeParam = hiddenPredecessors(param.firstToken).containsNewline
@@ -978,34 +981,6 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
   }
 
-
-  /**
-   * For parameters that are on new lines...
-   *
-   * 1. figure out
-   * - longest annotation + modifier length
-   * - longest parameter name
-   * - and longest type.
-   * If the first param is on the same line as the opening parenthesis, this param might have the "longest" annotation+modifier length...
-   *
-   * 2. Figure out location / indent level for each of the parameters found in #1
-   *
-   * 3. For every other parameter, figure out how many spaces are needed to indent:
-   * - the annotation + modifier length to meet the end of the longest annotation + modifier length:
-   * - the type
-   * - the colon before the type declaration to meet the position of the colon of the longest parameter name
-   *   {{{
-   *     // In this example, the "short" param needs to be indented 24 chars, "short" would have to be indented
-   *     // 2 extra chars to align the colons, and the "=" in the "longest" param would need to be indented
-   *     // 3 extra characters to align the equal signs.
-   *     @annotation override val longest: Int = 1
-   *     @a short: String = "Hi"
-   *
-   *     // This is what it would look like after everything is aligned.
-   *     @annotation override val longest: Int    = 1
-   *                           @a   short: String = "Hi"
-   *   }}}
-   */
   private def formatParamClause(paramClause: ParamClause, doubleIndentParams: Boolean = false)(implicit formatterState: FormatterState): (FormatResult, FormatterState) = {
     val ParamClause(lparen, implicitOption, firstParamOption, otherParams, rparen) = paramClause
     val paramIndent = if (doubleIndentParams) 2 else 1
@@ -1017,26 +992,23 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     if (alignParameters) {
       val groupedParams = groupParams(paramClause)
 
-      println(groupedParams)
-
       groupedParams.foreach {
         case Left(ConsecutiveSingleLineParams(params, maxSectionLengths, thisSectionLengths)) =>
-          val prefixSpaces = 0
           val idSpaces = maxSectionLengths.prefixLength + 1
 
           params.foreach { param =>
             val firstToken = implicitOption.getOrElse(param.firstToken)
 
-            // Indent Prefix
+            // Indent Prefix Or Id
             formatResult = formatResult.before(firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
 
             // Indent ID
-            if (firstToken != param.id)
-              formatResult = formatResult.before(param.id, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, idSpaces))
+//                if (firstToken != param.id)
+//                  formatResult = formatResult.before(param.id, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, idSpaces))
 
             // Indent Type
             for ((colon, typeAst) <- param.paramTypeOpt) {
-              val typeSpaces = maxSectionLengths.prefixLength + maxSectionLengths.idLength + 1
+              val typeSpaces = maxSectionLengths.prefixAndIdLength + 1
               formatResult = formatResult.before(typeAst.firstToken, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, typeSpaces))
             }
 
@@ -1056,37 +1028,51 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
           formatResult = formatResult.before(param.firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
           formatResult ++= format(param)(paramFormatterState)
       }
-
-      //    for (firstParam ← firstParamOption) {
-      //      val token = implicitOption getOrElse firstParam.firstToken
-      //      formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
-      //
-      //      if (hiddenPredecessors(token).containsNewline) {
-      //        formatResult = formatResult.before(token, formatterState.indent(paramIndent).currentIndentLevelInstruction)
-      //        paramFormatterState = if (alignParameters) {
-      //          formatterState.alignWithToken(relativeToken)
-      //        } else {
-      //          formatterState.indent(paramIndent)
-      //        }
-      //      } else if (containsNewline(firstParam) && alignParameters) {
-      //        paramFormatterState = formatterState.alignWithToken(relativeToken)
-      //      }
-      //      formatResult ++= format(firstParam)(paramFormatterState)
-      //    }
-
     } else {
+      for (param <- firstParamOption) {
+        formatNotAlignedParam(param, implicitOption getOrElse param.firstToken)
+      }
       for ((comma, param) ← otherParams) {
-        val token = param.firstToken
-
-        formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
-
-        if (hiddenPredecessors(token).containsNewline) {
-          formatterState.indent(paramIndent)
-          formatResult = formatResult.before(token, paramFormatterState.currentIndentLevelInstruction)
-        }
-        formatResult ++= format(param)(paramFormatterState)
+        formatNotAlignedParam(param, param.firstToken)
       }
     }
+
+    def formatNotAlignedParam(param: Param, firstToken: Token) = {
+
+      if (hiddenPredecessors(firstToken).containsNewline) {
+        println("HELLO")
+        formatterState.indent(paramIndent)
+        formatResult = formatResult.before(firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
+      }
+      paramFormatterState = formatterState.indent(paramIndent)
+      formatResult ++= format(param)(paramFormatterState)
+    }
+
+//    for (firstParam ← firstParamOption) {
+//      val token = implicitOption getOrElse firstParam.firstToken
+//
+//      if (hiddenPredecessors(token).containsNewline) {
+//        formatResult = formatResult.before(token, formatterState.indent(paramIndent).currentIndentLevelInstruction)
+//        paramFormatterState = if (alignParameters) {
+//          formatterState.alignWithToken(relativeToken)
+//        } else {
+//          formatterState.indent(paramIndent)
+//        }
+//      } else if (containsNewline(firstParam) && alignParameters) {
+//        paramFormatterState = formatterState.alignWithToken(relativeToken)
+//      }
+//      formatResult ++= format(firstParam)(paramFormatterState)
+//    }
+//    for ((comma, param) ← otherParams) {
+//      val token = param.firstToken
+//
+//      if (hiddenPredecessors(token).containsNewline) {
+//        formatterState.indent(paramIndent)
+//        formatResult = formatResult.before(token, paramFormatterState.currentIndentLevelInstruction)
+//      }
+//      formatResult ++= format(param)(paramFormatterState)
+//    }
+
 
     (formatResult, paramFormatterState)
   }

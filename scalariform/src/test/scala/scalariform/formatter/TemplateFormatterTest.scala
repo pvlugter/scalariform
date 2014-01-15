@@ -352,13 +352,15 @@ class TemplateFormatterTest extends AbstractFormatterTest {
       |val paramTwo: Option[String] = None,
       |three: String = "three")(
       |implicit val four: Int,
-      |five: Int)""" ==>
+      |five: Int,
+      |six: Boolean)""" ==>
       """class SomeClass(
         |  parameterOne: Int            = 1,
         |  val paramTwo: Option[String] = None,
         |  three:        String         = "three")(
-        |  implicit val four: Int
-        |               five: Int)"""
+        |  implicit val four: Int,
+        |  five:              String,
+        |  six:               Boolean)"""
 
   // TODO: figure out how to align comments, how to account for comment space,
   // how to preserve newlines, how to preserve spacing on first line.

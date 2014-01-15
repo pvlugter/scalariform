@@ -9,141 +9,141 @@ class CaseClausesFormatterTest extends AbstractExpressionFormatterTest {
 
   override val debug = false
 
-//  """{
-//    |  case x => x * x
-//    |  case y => y * 2
-//    |}""" ==>
-//  """{
-//    |  case x => x * x
-//    |  case y => y * 2
-//    |}"""
-//
-//  """{
-//    |case 1 => // comment
-//    |2
-//    |}""" ==>
-//  """{
-//    |  case 1 => // comment
-//    |    2
-//    |}"""
-//
-//  """{
-//    |case x =>
-//    |while (true) {
-//    |1
-//    |}
-//    |}""" ==>
-//  """{
-//    |  case x =>
-//    |    while (true) {
-//    |      1
-//    |    }
-//    |}"""
-//
-//  """a match {
-//    |    case b => c();
-//    |d()
-//    |  }""" ==>
-//  """a match {
-//    |  case b =>
-//    |    c();
-//    |    d()
-//    |}"""
-//
-//  """a match {
-//    |case b => {
-//    |c
-//    |}
-//    |}""" ==>
-//  """a match {
-//    |  case b => {
-//    |    c
-//    |  }
-//    |}"""
-//
-//  """a match {
-//    |case b => {
-//    |c
-//    |}
-//    |d
-//    |}""" ==>
-//  """a match {
-//    |  case b =>
-//    |    {
-//    |      c
-//    |    }
-//    |    d
-//    |}"""
-//
-//  """a match { case a => b; c; d }""" ==>
-//  """a match { case a => b; c; d }"""
-//
-//  """a match { case a => b; c;
-//    |d }""" ==>
-//  """a match {
-//    |  case a =>
-//    |    b; c;
-//    |    d
-//    |}"""
-//
-//  "a match { case b => ; c }" ==> "a match { case b => ; c }"
+  """{
+    |  case x => x * x
+    |  case y => y * 2
+    |}""" ==>
+  """{
+    |  case x => x * x
+    |  case y => y * 2
+    |}"""
+
+  """{
+    |case 1 => // comment
+    |2
+    |}""" ==>
+  """{
+    |  case 1 => // comment
+    |    2
+    |}"""
+
+  """{
+    |case x =>
+    |while (true) {
+    |1
+    |}
+    |}""" ==>
+  """{
+    |  case x =>
+    |    while (true) {
+    |      1
+    |    }
+    |}"""
+
+  """a match {
+    |    case b => c();
+    |d()
+    |  }""" ==>
+  """a match {
+    |  case b =>
+    |    c();
+    |    d()
+    |}"""
+
+  """a match {
+    |case b => {
+    |c
+    |}
+    |}""" ==>
+  """a match {
+    |  case b => {
+    |    c
+    |  }
+    |}"""
+
+  """a match {
+    |case b => {
+    |c
+    |}
+    |d
+    |}""" ==>
+  """a match {
+    |  case b =>
+    |    {
+    |      c
+    |    }
+    |    d
+    |}"""
+
+  """a match { case a => b; c; d }""" ==>
+  """a match { case a => b; c; d }"""
+
+  """a match { case a => b; c;
+    |d }""" ==>
+  """a match {
+    |  case a =>
+    |    b; c;
+    |    d
+    |}"""
+
+  "a match { case b => ; c }" ==> "a match { case b => ; c }"
 
   // See issue #60
-//  """a match {
-//    |case b =>
-//    |val c = d
-//    |case e =>
-//    |}""" ==>
-//  """a match {
-//    |  case b =>
-//    |    val c = d
-//    |  case e =>
-//    |}"""
-//
-//  """a match {
-//    |/* foo*/
-//    |case x if z=> 1
-//    |/* bar*/
-//    |case yy => 2
-//    |/* baz*/
-//    |case zzz => 3
-//    |}""" ==>
-//  """a match {
-//    |  /* foo*/
-//    |  case x if z => 1
-//    |  /* bar*/
-//    |  case yy => 2
-//    |  /* baz*/
-//    |  case zzz => 3
-//    |}"""
+  """a match {
+    |case b =>
+    |val c = d
+    |case e =>
+    |}""" ==>
+  """a match {
+    |  case b =>
+    |    val c = d
+    |  case e =>
+    |}"""
 
-//  {
-//  implicit val formattingPreferences = FormattingPreferences.setPreference(SpacesWithinPatternBinders, false)
-//
-//  """a match {
-//    |  case b(c @ ~()) =>
-//    |  case b(c@ ~()) =>
-//    |}""" ==>
-//  """a match {
-//    |  case b(c@ ~()) =>
-//    |  case b(c@ ~()) =>
-//    |}"""
-//  }
+  """a match {
+    |/* foo*/
+    |case x if z=> 1
+    |/* bar*/
+    |case yy => 2
+    |/* baz*/
+    |case zzz => 3
+    |}""" ==>
+  """a match {
+    |  /* foo*/
+    |  case x if z => 1
+    |  /* bar*/
+    |  case yy => 2
+    |  /* baz*/
+    |  case zzz => 3
+    |}"""
+
+  {
+  implicit val formattingPreferences = FormattingPreferences.setPreference(SpacesWithinPatternBinders, false)
+
+  """a match {
+    |  case b(c @ ~()) =>
+    |  case b(c@ ~()) =>
+    |}""" ==>
+  """a match {
+    |  case b(c@ ~()) =>
+    |  case b(c@ ~()) =>
+    |}"""
+  }
 
   {
 
   implicit val formattingPreferences = FormattingPreferences.setPreference(AlignSingleLineCaseStatements, true)
 
-//  """a match {
-//    |case x => 1
-//    |case yy => 2
-//    |case zzz => 3
-//    |}""" ==>
-//  """a match {
-//    |  case x   => 1
-//    |  case yy  => 2
-//    |  case zzz => 3
-//    |}"""
+  """a match {
+    |case x => 1
+    |case yy => 2
+    |case zzz => 3
+    |}""" ==>
+  """a match {
+    |  case x   => 1
+    |  case yy  => 2
+    |  case zzz => 3
+    |}"""
 
   """a match {
     |/* foo*/
