@@ -317,7 +317,8 @@ class TemplateFormatterTest extends AbstractFormatterTest {
 //    |  })"""
 
   {
-    implicit val formattingPreferences = FormattingPreferences.setPreference(AlignParameters, true)
+    implicit var formattingPreferences = FormattingPreferences.setPreference(PreserveDanglingCloseParenthesis, true)
+    formattingPreferences = formattingPreferences.setPreference(AlignParameters, true)
 
   // Split into 3 columns: name, type, and default
 //  """def showInput[A](
@@ -354,13 +355,14 @@ class TemplateFormatterTest extends AbstractFormatterTest {
       |implicit val four: Int,
       |five: Int,
       |six: Boolean)""" ==>
-      """class SomeClass(
-        |  parameterOne: Int            = 1,
-        |  val paramTwo: Option[String] = None,
-        |  three:        String         = "three")(
-        |  implicit val four: Int,
-        |  five:              String,
-        |  six:               Boolean)"""
+    """class SomeClass(
+      |  parameterOne: Int            = 1,
+      |  val paramTwo: Option[String] = None,
+      |  three:        String         = "three")(
+      |    implicit
+      |    val four: Int,
+      |    five:     String,
+      |    six:      Boolean)"""
 
   // TODO: figure out how to align comments, how to account for comment space,
   // how to preserve newlines, how to preserve spacing on first line.
