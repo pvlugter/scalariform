@@ -1014,78 +1014,80 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     var paramFormatterState = formatterState
     val alignParameters = formattingPreferences(AlignParameters) && !formattingPreferences(IndentWithTabs)
 
-    val groupedParams = groupParams(paramClause)
+    if (alignParameters) {
+      val groupedParams = groupParams(paramClause)
 
-    println(groupedParams)
+      println(groupedParams)
 
-    groupedParams.foreach {
-      case Left(ConsecutiveSingleLineParams(params, maxSectionLengths, thisSectionLengths)) =>
-        val prefixSpaces = 0
-        val idSpaces = maxSectionLengths.prefixLength + 1
+      groupedParams.foreach {
+        case Left(ConsecutiveSingleLineParams(params, maxSectionLengths, thisSectionLengths)) =>
+          val prefixSpaces = 0
+          val idSpaces = maxSectionLengths.prefixLength + 1
 
-        params.foreach { param =>
-          val firstToken = implicitOption.getOrElse(param.firstToken)
+          params.foreach { param =>
+            val firstToken = implicitOption.getOrElse(param.firstToken)
 
-          // Indent ID
-          formatResult = formatResult.before(param.id, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, idSpaces))
+            // Indent Prefix
+            formatResult = formatResult.before(firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
 
-          // Indent Type
-          for ((colon, typeAst) <- param.paramTypeOpt) {
-            val typeSpaces = maxSectionLengths.prefixLength + maxSectionLengths.idLength + 1
-            formatResult = formatResult.before(typeAst.firstToken, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, typeSpaces))
-          }
+            // Indent ID
+            if (firstToken != param.id)
+              formatResult = formatResult.before(param.id, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, idSpaces))
 
-          // Indent Default
-          for ((equal, default) <- param.defaultValueOpt) {
-            val defaultSpaces = {
-              maxSectionLengths.idLength +
-                maxSectionLengths.prefixLength +
-                maxSectionLengths.typeLength + 2
+            // Indent Type
+            for ((colon, typeAst) <- param.paramTypeOpt) {
+              val typeSpaces = maxSectionLengths.prefixLength + maxSectionLengths.idLength + 1
+              formatResult = formatResult.before(typeAst.firstToken, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, typeSpaces))
             }
-            formatResult = formatResult.before(equal, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, defaultSpaces))
-          }
 
-          // Indent Prefix
-          formatResult = formatResult.before(firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
+            // Indent Default
+            for ((equal, default) <- param.defaultValueOpt) {
+              val defaultSpaces = {
+                maxSectionLengths.idLength +
+                  maxSectionLengths.prefixLength +
+                  maxSectionLengths.typeLength + 2
+              }
+              formatResult = formatResult.before(equal, PlaceAtColumn(paramFormatterState.indentLevel + paramIndent, defaultSpaces))
+            }
+
+            formatResult ++= format(param)(paramFormatterState)
+          }
+        case Right(param) =>
+          formatResult = formatResult.before(param.firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
           formatResult ++= format(param)(paramFormatterState)
+      }
+
+      //    for (firstParam ← firstParamOption) {
+      //      val token = implicitOption getOrElse firstParam.firstToken
+      //      formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
+      //
+      //      if (hiddenPredecessors(token).containsNewline) {
+      //        formatResult = formatResult.before(token, formatterState.indent(paramIndent).currentIndentLevelInstruction)
+      //        paramFormatterState = if (alignParameters) {
+      //          formatterState.alignWithToken(relativeToken)
+      //        } else {
+      //          formatterState.indent(paramIndent)
+      //        }
+      //      } else if (containsNewline(firstParam) && alignParameters) {
+      //        paramFormatterState = formatterState.alignWithToken(relativeToken)
+      //      }
+      //      formatResult ++= format(firstParam)(paramFormatterState)
+      //    }
+
+    } else {
+      for ((comma, param) ← otherParams) {
+        val token = param.firstToken
+
+        formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
+
+        if (hiddenPredecessors(token).containsNewline) {
+          formatterState.indent(paramIndent)
+          formatResult = formatResult.before(token, paramFormatterState.currentIndentLevelInstruction)
         }
-      case Right(param) =>
-        formatResult = formatResult.before(param.firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
         formatResult ++= format(param)(paramFormatterState)
+      }
     }
 
-//    for (firstParam ← firstParamOption) {
-//      val token = implicitOption getOrElse firstParam.firstToken
-//      formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
-//
-//      if (hiddenPredecessors(token).containsNewline) {
-//        formatResult = formatResult.before(token, formatterState.indent(paramIndent).currentIndentLevelInstruction)
-//        paramFormatterState = if (alignParameters) {
-//          formatterState.alignWithToken(relativeToken)
-//        } else {
-//          formatterState.indent(paramIndent)
-//        }
-//      } else if (containsNewline(firstParam) && alignParameters) {
-//        paramFormatterState = formatterState.alignWithToken(relativeToken)
-//      }
-//      formatResult ++= format(firstParam)(paramFormatterState)
-//    }
-
-//    for ((comma, param) ← otherParams) {
-//      val token = param.firstToken
-//
-//      formatResult = formatResult.before(token, PlaceAtColumn(formatterState.indentLevel, 10))
-//
-//      if (hiddenPredecessors(token).containsNewline) {
-//        paramFormatterState = if (alignParameters) {
-//          formatterState.alignWithToken(relativeToken)
-//        } else {
-//          formatterState.indent(paramIndent)
-//        }
-//        formatResult = formatResult.before(token, paramFormatterState.currentIndentLevelInstruction)
-//      }
-//      formatResult ++= format(param)(paramFormatterState)
-//    }
     (formatResult, paramFormatterState)
   }
 
