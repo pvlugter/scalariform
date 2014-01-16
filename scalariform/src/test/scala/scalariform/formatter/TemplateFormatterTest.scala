@@ -7,223 +7,223 @@ import scalariform.formatter.preferences._
 // format: OFF
 class TemplateFormatterTest extends AbstractFormatterTest {
 //
-//  "case class A" ==> "case class A"
-//
-//  """class A extends B {
-//    |  foo()
-//    |  bar()
-//    |}""" ==>
-//  """class A extends B {
-//    |  foo()
-//    |  bar()
-//    |}"""
-//
-//  """class A {
-//    |val n: Int
-//    |}""" ==>
-//  """class A {
-//    |  val n: Int
-//    |}"""
-//
-//  "class A" ==> "class A"
-//  "trait A" ==> "trait A"
-//
-//  "class A private (val b: C)" ==> "class A private (val b: C)"
-//  "class A [B]" ==> "class A[B]"
-//  "class A[B]private(val c: D)" ==> "class A[B] private (val c: D)"
-//  "class A (val b: C) (val d: E) (implicit val f: G)" ==> "class A(val b: C)(val d: E)(implicit val f: G)"
-//  "class A (implicit val f: G)" ==> "class A(implicit val f: G)"
-//
-//  "abstract class E [F]private(val h: I) (implicit j: K) extends{} with L(2) with M{}" ==>
-//    "abstract class E[F] private (val h: I)(implicit j: K) extends {} with L(2) with M {}"
-//
-//  "class A{}" ==> "class A {}"
-//
-//  "class A@Deprecated()private (val b: C)" ==> "class A @Deprecated() private (val b: C)"
-//  "class A@Annotation1()@Annotation2()(val b: C)" ==> "class A @Annotation1() @Annotation2() (val b: C)"
-//  "class A[B]@Annotation()private(val c: D)" ==> "class A[B] @Annotation() private (val c: D)"
-//
-//  "class A @Deprecated" ==> "class A @Deprecated"
-//  "class A @Deprecated private" ==> "class A @Deprecated private"
-//  "class A @Deprecated private (n: Int)" ==> "class A @Deprecated private (n: Int)"
-//
-//  """@A@B(c = "d")abstract class E [F]@G()private(val h: I) (implicit j: K) extends{} with L(2) with M{}""" ==>
-//  """@A @B(c = "d") abstract class E[F] @G() private (val h: I)(implicit j: K) extends {} with L(2) with M {}"""
-//
-//  """@A/*a*/@B
-//    |/*b*/class E""" =/=>
-//  """@A/*a*/
-//    |@B
-//    |/*b*/
-//    |class E""" because "of inconsistency between spacing between annotations and comments"
-//
-//  """/*a*/@A/*b*/@B(c = "d")/*c*/abstract class/*d*/E/*e*/[F]/*f*/@G()/*g*/private/*h*/(val h: I)/*i*/(implicit j: K)/*j*/extends/*k*/{} with/*l*/L(2) with M/*m*/{}""" =/=>
-//  """/*a*/
-//    |@A/*b*/
-//    |@B(c = "d")/*c*/
-//    |abstract class/*d*/E/*e*/[F]/*f*/@G()/*g*/private/*h*/(val h: I)/*i*/(implicit j: K)/*j*/extends/*k*/{} with/*l*/L(2) with M/*m*/{}""" because "sort out what we want"
-//
-//
-//  {
-//
-//  implicit val formattingPreferences = FormattingPreferences.setPreference(SpacesWithinPatternBinders, true)
-//
-//  "@(Id@Field) class A" ==> "@(Id @Field) class A"
-//
-//  }
-//
-//  """class A {
-//    |
-//    |  class B
-//    |
-//    |  protected def c
-//    |
-//    |}""" ==>
-//  """class A {
-//    |
-//    |  class B
-//    |
-//    |  protected def c
-//    |
-//    |}"""
-//
-//  """class A{
-//    |(
-//    |null match {
-//    |case b => val c = {d: Int => 1}
-//    |1.toString
-//    |}
-//    |)
-//    |}""" ==>
-//  """class A {
-//    |  (
-//    |    null match {
-//    |      case b =>
-//    |        val c = { d: Int => 1 }
-//    |        1.toString
-//    |    })
-//    |}"""
-//
-//  """class C1492 {
-//    |
-//    |  class X
-//    |
-//    |  def foo(x: X => X) {}
-//    |
-//    |  foo ( implicit x => implicitly[X] )
-//    |  foo { implicit x => implicitly[X] }
-//    |}""" ==>
-//  """class C1492 {
-//    |
-//    |  class X
-//    |
-//    |  def foo(x: X => X) {}
-//    |
-//    |  foo(implicit x => implicitly[X])
-//    |  foo { implicit x => implicitly[X] }
-//    |}"""
-//
-//  """class A {
-//    | <b/>
-//    | 42
-//    |}""" ==>
-//  """class A {
-//    |  <b/>
-//    |  42
-//    |}"""
-//
-//  """class A {
-//    |  val x = new {
-//    |  def foo = 3
-//    |  }
-//    |}""" ==>
-//  """class A {
-//    |  val x = new {
-//    |    def foo = 3
-//    |  }
-//    |}"""
-//
-//  """class A(n: Int){}""" ==>
-//  """class A(n: Int) {}"""
-//
-//  """class A {
-//    |println("B")
-//    |// Comment
-//    |}""" ==>
-//  """class A {
-//    |  println("B")
-//    |  // Comment
-//    |}"""
-//
-//  """trait A {
-//    |this: B =>
-//    |val c
-//    |}""" ==>
-//    """trait A {
-//    |  this: B =>
-//    |  val c
-//    |}"""
-//
-//  """trait A {
-//    |this: B =>
-//    |println("foo")
-//    |}""" ==>
-//  """trait A {
-//    |  this: B =>
-//    |  println("foo")
-//    |}"""
-//
-//  "object X0 { 0;  (a : Int, b : Int, c : Int) => println(List(a, b)) }" ==>
-//    "object X0 { 0; (a: Int, b: Int, c: Int) => println(List(a, b)) }" // Case for self type / anon function literal syntax disambig
-//
-//  "@serializable class A" ==> "@serializable class A"
-//
-//  "@volatile var nParticles = 0" ==> "@volatile var nParticles = 0" // Issue #28
-//
-//  """@volatile
-//    |var nParticles = 0""" ==>
-//  """@volatile
-//    |var nParticles = 0"""
-//
-//  """class A extends B[C] {
-//    |println("foo")
-//    |}""" ==>
-//  """class A extends B[C] {
-//    |  println("foo")
-//    |}"""
-//
-//  "class A(private val b: C)" ==> "class A(private val b: C)"
-//  "class A(protected val b: C)" ==> "class A(protected val b: C)"
-//  "class A(override val b: C)" ==> "class A(override val b: C)"
-//
-//  """class C[T <: A {val n: Int
-//    |val m :Int}]""" ==>
-//  """class C[T <: A {
-//    |  val n: Int
-//    |  val m: Int
-//    |}]"""
-//
-//  """class C(n: { val n: Int
-//    |val m: Int} )""" ==>
-//  """class C(n: {
-//    |  val n: Int
-//    |  val m: Int
-//    |})"""
-//
-//  """class C(@annotation(foo = {
-//    |1 + 2}) n: { val n: Int
-//    |val m: Int} = { val n: Int
-//    |val m: Int})""" ==>
-//  """class C(@annotation(foo = {
-//    |  1 + 2
-//    |}) n: {
-//    |  val n: Int
-//    |  val m: Int
-//    |} = {
-//    |  val n: Int
-//    |  val m: Int
-//    |})"""
-//
+  "case class A" ==> "case class A"
+
+  """class A extends B {
+    |  foo()
+    |  bar()
+    |}""" ==>
+  """class A extends B {
+    |  foo()
+    |  bar()
+    |}"""
+
+  """class A {
+    |val n: Int
+    |}""" ==>
+  """class A {
+    |  val n: Int
+    |}"""
+
+  "class A" ==> "class A"
+  "trait A" ==> "trait A"
+
+  "class A private (val b: C)" ==> "class A private (val b: C)"
+  "class A [B]" ==> "class A[B]"
+  "class A[B]private(val c: D)" ==> "class A[B] private (val c: D)"
+  "class A (val b: C) (val d: E) (implicit val f: G)" ==> "class A(val b: C)(val d: E)(implicit val f: G)"
+  "class A (implicit val f: G)" ==> "class A(implicit val f: G)"
+
+  "abstract class E [F]private(val h: I) (implicit j: K) extends{} with L(2) with M{}" ==>
+    "abstract class E[F] private (val h: I)(implicit j: K) extends {} with L(2) with M {}"
+
+  "class A{}" ==> "class A {}"
+
+  "class A@Deprecated()private (val b: C)" ==> "class A @Deprecated() private (val b: C)"
+  "class A@Annotation1()@Annotation2()(val b: C)" ==> "class A @Annotation1() @Annotation2() (val b: C)"
+  "class A[B]@Annotation()private(val c: D)" ==> "class A[B] @Annotation() private (val c: D)"
+
+  "class A @Deprecated" ==> "class A @Deprecated"
+  "class A @Deprecated private" ==> "class A @Deprecated private"
+  "class A @Deprecated private (n: Int)" ==> "class A @Deprecated private (n: Int)"
+
+  """@A@B(c = "d")abstract class E [F]@G()private(val h: I) (implicit j: K) extends{} with L(2) with M{}""" ==>
+  """@A @B(c = "d") abstract class E[F] @G() private (val h: I)(implicit j: K) extends {} with L(2) with M {}"""
+
+  """@A/*a*/@B
+    |/*b*/class E""" =/=>
+  """@A/*a*/
+    |@B
+    |/*b*/
+    |class E""" because "of inconsistency between spacing between annotations and comments"
+
+  """/*a*/@A/*b*/@B(c = "d")/*c*/abstract class/*d*/E/*e*/[F]/*f*/@G()/*g*/private/*h*/(val h: I)/*i*/(implicit j: K)/*j*/extends/*k*/{} with/*l*/L(2) with M/*m*/{}""" =/=>
+  """/*a*/
+    |@A/*b*/
+    |@B(c = "d")/*c*/
+    |abstract class/*d*/E/*e*/[F]/*f*/@G()/*g*/private/*h*/(val h: I)/*i*/(implicit j: K)/*j*/extends/*k*/{} with/*l*/L(2) with M/*m*/{}""" because "sort out what we want"
+
+
+  {
+
+  implicit val formattingPreferences = FormattingPreferences.setPreference(SpacesWithinPatternBinders, true)
+
+  "@(Id@Field) class A" ==> "@(Id @Field) class A"
+
+  }
+
+  """class A {
+    |
+    |  class B
+    |
+    |  protected def c
+    |
+    |}""" ==>
+  """class A {
+    |
+    |  class B
+    |
+    |  protected def c
+    |
+    |}"""
+
+  """class A{
+    |(
+    |null match {
+    |case b => val c = {d: Int => 1}
+    |1.toString
+    |}
+    |)
+    |}""" ==>
+  """class A {
+    |  (
+    |    null match {
+    |      case b =>
+    |        val c = { d: Int => 1 }
+    |        1.toString
+    |    })
+    |}"""
+
+  """class C1492 {
+    |
+    |  class X
+    |
+    |  def foo(x: X => X) {}
+    |
+    |  foo ( implicit x => implicitly[X] )
+    |  foo { implicit x => implicitly[X] }
+    |}""" ==>
+  """class C1492 {
+    |
+    |  class X
+    |
+    |  def foo(x: X => X) {}
+    |
+    |  foo(implicit x => implicitly[X])
+    |  foo { implicit x => implicitly[X] }
+    |}"""
+
+  """class A {
+    | <b/>
+    | 42
+    |}""" ==>
+  """class A {
+    |  <b/>
+    |  42
+    |}"""
+
+  """class A {
+    |  val x = new {
+    |  def foo = 3
+    |  }
+    |}""" ==>
+  """class A {
+    |  val x = new {
+    |    def foo = 3
+    |  }
+    |}"""
+
+  """class A(n: Int){}""" ==>
+  """class A(n: Int) {}"""
+
+  """class A {
+    |println("B")
+    |// Comment
+    |}""" ==>
+  """class A {
+    |  println("B")
+    |  // Comment
+    |}"""
+
+  """trait A {
+    |this: B =>
+    |val c
+    |}""" ==>
+    """trait A {
+    |  this: B =>
+    |  val c
+    |}"""
+
+  """trait A {
+    |this: B =>
+    |println("foo")
+    |}""" ==>
+  """trait A {
+    |  this: B =>
+    |  println("foo")
+    |}"""
+
+  "object X0 { 0;  (a : Int, b : Int, c : Int) => println(List(a, b)) }" ==>
+    "object X0 { 0; (a: Int, b: Int, c: Int) => println(List(a, b)) }" // Case for self type / anon function literal syntax disambig
+
+  "@serializable class A" ==> "@serializable class A"
+
+  "@volatile var nParticles = 0" ==> "@volatile var nParticles = 0" // Issue #28
+
+  """@volatile
+    |var nParticles = 0""" ==>
+  """@volatile
+    |var nParticles = 0"""
+
+  """class A extends B[C] {
+    |println("foo")
+    |}""" ==>
+  """class A extends B[C] {
+    |  println("foo")
+    |}"""
+
+  "class A(private val b: C)" ==> "class A(private val b: C)"
+  "class A(protected val b: C)" ==> "class A(protected val b: C)"
+  "class A(override val b: C)" ==> "class A(override val b: C)"
+
+  """class C[T <: A {val n: Int
+    |val m :Int}]""" ==>
+  """class C[T <: A {
+    |  val n: Int
+    |  val m: Int
+    |}]"""
+
+  """class C(n: { val n: Int
+    |val m: Int} )""" ==>
+  """class C(n: {
+    |  val n: Int
+    |  val m: Int
+    |})"""
+
+  """class C(@annotation(foo = {
+    |1 + 2}) n: { val n: Int
+    |val m: Int} = { val n: Int
+    |val m: Int})""" ==>
+  """class C(@annotation(foo = {
+    |  1 + 2
+    |}) n: {
+    |  val n: Int
+    |  val m: Int
+    |} = {
+    |  val n: Int
+    |  val m: Int
+    |})"""
+
 //  """class A(b: C)
 //    |(d: E) """ ==>
 //  """class A(b: C)(d: E)""" // Maybe handle multiple ParamClauses in future.
@@ -315,69 +315,86 @@ class TemplateFormatterTest extends AbstractFormatterTest {
 //    |    def foo(): Int
 //    |    def bar(a: String): Int
 //    |  })"""
+  {
+    implicit val formattingPreferences = FormattingPreferences.
+      setPreference(AlignParameters, true).
+      setPreference(SpaceBeforeColon, true).
+      setPreference(SpaceInsideBrackets, true)
+
+    """def a(
+      |a: Int = 1,
+      |abc: Boolean = true): Int""" ==>
+      """def a(
+        |  a :   Int     = 1,
+        |  abc : Boolean = true) : Int"""
+
+    """def a(
+      |a: Option[Either[Int]] = 1,
+      |abc: Boolean = true): Int""" ==>
+      """def a(
+        |  a :   Option[ Either[ Int ] ] = 1,
+        |  abc : Boolean                 = true) : Int"""
+  }
 
   {
-    implicit var formattingPreferences = FormattingPreferences.setPreference(PreserveDanglingCloseParenthesis, true)
-    formattingPreferences = formattingPreferences.setPreference(AlignParameters, true)
+    implicit val formattingPreferences = FormattingPreferences.setPreference(AlignParameters, true)
 
-  // Split into 3 columns: name, type, and default
-//  """def showInput[A](
-//    | parent: Component = null,
-//    | message: Any,
-//    | title: String = uiString("OptionPane.inputDialogTitle"),
-//    | messageType: Message.Value = Message.Question,
-//    | icon: Icon = EmptyIcon,
-//    | entries: Seq[A] = Nil,
-//    | initial: A): Option[A]""" ==>
-//  """def showInput[A](
-//    |  parent:      Component     = null,
-//    |  message:     Any,
-//    |  title:       String        = uiString("OptionPane.inputDialogTitle"),
-//    |  messageType: Message.Value = Message.Question,
-//    |  icon:        Icon          = EmptyIcon,
-//    |  entries:     Seq[A]        = Nil,
-//    |  initial:     A): Option[A]"""
+    // Split into 3 columns: name, type, and default
+    """def showInput[A](
+      | parent: Component = null,
+      | message: Any,
+      | title: String = uiString("OptionPane.inputDialogTitle"),
+      | messageType: Message.Value = Message.Question,
+      | icon: Icon = EmptyIcon,
+      | entries: Seq[A] = Nil,
+      | initial: A): Option[A]""" ==>
+    """def showInput[A](
+      |  parent:      Component     = null,
+      |  message:     Any,
+      |  title:       String        = uiString("OptionPane.inputDialogTitle"),
+      |  messageType: Message.Value = Message.Question,
+      |  icon:        Icon          = EmptyIcon,
+      |  entries:     Seq[A]        = Nil,
+      |  initial:     A): Option[A]"""
 
-  // Preserve first line spacing
-//    """case class Spacing(param: Int = 1,
-//      |paramTwo: Int = 2,
-//      |paramThree: String = "3")""" ==>
-//      """case class Spacing(
-//        |  param:      Int    = 1,
-//        |  paramTwo:   Int    = 2,
-//        |  paramThree: String = "3")"""
+    // Param gets placed onto a new line due to current limitations of existing IntertokenFormatInstructions
+    """case class Spacing(param: Int = 1,
+      |paramTwo: Int = 2,
+      |paramThree: String = "3")""" ==>
+    """case class Spacing(
+      |  param:      Int    = 1,
+      |  paramTwo:   Int    = 2,
+      |  paramThree: String = "3")"""
 
-// Aligns implicits properly
+    // Aligns implicits and curried parameters properly
     """class SomeClass(
       |parameterOne: Int = 1,
-      |val paramTwo: Option[String] = None,
+      |val parameterTwo: Option[String] = None,
       |three: String = "three")(
       |implicit val four: Int,
-      |five: Int,
+      |five: String,
       |six: Boolean)""" ==>
     """class SomeClass(
-      |  parameterOne: Int            = 1,
-      |  val paramTwo: Option[String] = None,
-      |  three:        String         = "three")(
+      |  parameterOne:     Int            = 1,
+      |  val parameterTwo: Option[String] = None,
+      |  three:            String         = "three")(
       |    implicit
       |    val four: Int,
       |    five:     String,
       |    six:      Boolean)"""
 
-  // TODO: figure out how to align comments, how to account for comment space,
-  // how to preserve newlines, how to preserve spacing on first line.
+    // Handles annotations, modifiers, and comments
+    """def extraStuff(
+      |// comment 1
+      |@Annotated paramOne: Int = 1, // comment 2
+      |/* comment 3 */ private val modifiedTwo: String = "two",
+      |@Annotated2("complicatedAnnotation") @A3("Another") protected annotatedAndModified: Option[Int] = Some(3))""" ==>
+    """def extraStuff(
+      |  // comment 1
+      |  @Annotated paramOne:                                                               Int         = 1, // comment 2
+      |  /* comment 3 */ private val modifiedTwo:                                           String      = "two",
+      |  @Annotated2("complicatedAnnotation")@A3("Another") protected annotatedAndModified: Option[Int] = Some(3))"""
 
-  // Handles annotations, modifiers, and comments
-//    """def extraStuff(
-//      |// comment1
-//      |@Annotated paramOne: Int = 1, // comment 2
-//      |/* comment 3 */ private val modifiedTwo: String = "two",
-//      |@Annotated2("complicatedAnnotation") @A3("Another") protected annotatedAndModified: Option[Int] = Some(3))""" ==>
-//      """def extraStuff(
-//        |                                                     @Annotated             paramOne: Int         = 1,
-//        |                                                    private val          modifiedTwo: String      = "two",
-//        |  @Annotated2("complicatedAnnotation") @A3("Another") protected annotatedAndModified: Option[Int] = Some(3))"""
-//
 //  """class A(n: Int,
 //    |z: { val m
 //    |val n },
