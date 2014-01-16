@@ -385,17 +385,20 @@ class TemplateFormatterTest extends AbstractFormatterTest {
       |parameterOne: Int = 1,
       |val parameterTwo: Option[String] = None,
       |three: String = "three")(
+      |intermediate: Int
+      |)(
       |implicit val four: Int,
       |five: String,
       |six: Boolean)""" ==>
-    """class SomeClass(
-      |  parameterOne:     Int            = 1,
-      |  val parameterTwo: Option[String] = None,
-      |  three:            String         = "three")(
-      |    implicit
-      |    val four: Int,
-      |    five:     String,
-      |    six:      Boolean)"""
+      """class SomeClass(
+        |  parameterOne:     Int            = 1,
+        |  val parameterTwo: Option[String] = None,
+        |  three:            String         = "three")(
+        |      intermediate: Int)(
+        |        implicit
+        |        val four: Int,
+        |        five:     String,
+        |        six:      Boolean)"""
 //
     // Handles annotations, modifiers, and comments
     """def extraStuff(
