@@ -394,11 +394,11 @@ class TemplateFormatterTest extends AbstractFormatterTest {
         |  parameterOne:     Int            = 1,
         |  val parameterTwo: Option[String] = None,
         |  three:            String         = "three")(
-        |      intermediate: Int)(
-        |        implicit
-        |        val four: Int,
-        |        five:     String,
-        |        six:      Boolean)"""
+        |    intermediate: Int)(
+        |      implicit
+        |      val four: Int,
+        |      five:     String,
+        |      six:      Boolean)"""
 //
     // Handles annotations, modifiers, and comments
     """def extraStuff(
@@ -488,7 +488,7 @@ class TemplateFormatterTest extends AbstractFormatterTest {
 //    |  b: Int)(c: {
 //    |    val d: Int
 //    |  })"""
-//
+
 //  {
 //    implicit val formattingPreferences = FormattingPreferences.setPreference(DoubleIndentClassDeclaration, true)
 //  """class Person(
