@@ -861,7 +861,7 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
   private def groupParams(paramClause: ParamClause, alignParameters: Boolean)(implicit formatterState: FormatterState): List[EitherAlignableParam] = {
     val ParamClause(_, _, firstParamOption, otherParams, _) = paramClause
 
-    val paramsList = otherParams.map { case (comma, param) => param }
+    val paramsList: List[Param] =  otherParams.map { case (comma, param) => param }.reverse
 
     def appendParamToGroup(paramToAppend: Param,
                            groupedParams: List[EitherAlignableParam],
@@ -1019,19 +1019,17 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     if (formattingPreferences(PreserveDanglingCloseParenthesis))
       formatResult = formatResult.before(rparen, formatterState.currentIndentLevelInstruction)
 
-    // Place implicit on it's own line
-    for (implicitToken <- paramClause.implicitOption) {
-      formatResult = formatResult.before(implicitToken, paramFormatterState.indent(paramIndent).currentIndentLevelInstruction)
-    }
-
     val groupedParams = groupParams(paramClause, alignParameters)
 
-    val ((firstGroupedParamOption, maxSectionLengthsOption), otherGroupedParams: List[EitherAlignableParam]) = groupedParams.head match {
-      case Left(consecutiveParams) =>
-        val (firstParam, remainingConsecutiveParams) = consecutiveParams.pop
-        ((firstParam, Some(remainingConsecutiveParams.maxSectionLengths)), Left(remainingConsecutiveParams) :: groupedParams.tail)
-      case p @ Right(param) =>
-        ((Some(param), None), groupedParams.tail)
+    val ((firstGroupedParamOption, maxSectionLengthsOption), otherGroupedParams) = groupedParams.headOption match {
+      case Some(x) => x match {
+        case Left(consecutiveParams) =>
+          val (firstParam, remainingConsecutiveParams) = consecutiveParams.pop
+          ((firstParam, Some(remainingConsecutiveParams.maxSectionLengths)), Left(remainingConsecutiveParams) :: groupedParams.tail)
+        case p @ Right(param) =>
+          ((Some(param), None), groupedParams.tail)
+      }
+      case None => ((None, None), Nil)
     }
 
     for (firstParam <- firstGroupedParamOption) {
@@ -1074,15 +1072,24 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     }
 
     def alignFirstParam(firstParam: Param) = {
+      // Place implicit on it's own line
+      for (implicitToken <- implicitOption) {
+        if (hiddenPredecessors(implicitToken).containsNewline || (containsNewline(firstParam) && alignParameters))
+          formatResult = formatResult.before(implicitToken, paramFormatterState.indent(paramIndent).currentIndentLevelInstruction)
+      }
+
       val firstToken = firstParam.firstToken
-      if (hiddenPredecessors(firstToken).containsNewline) {
+      val implicitOrFirstToken = implicitOption getOrElse firstToken
+
+      if (alignParameters)
+        paramFormatterState = formatterState.alignWithToken(relativeToken)
+
+      if (hiddenPredecessors(implicitOrFirstToken).containsNewline) {
         formatResult = formatResult.before(firstToken, formatterState.indent(paramIndent).currentIndentLevelInstruction)
-        paramFormatterState = if (alignParameters) {
-          formatterState.alignWithToken(relativeToken)
-        } else {
-          formatterState.indent(paramIndent)
-        }
+        if (!alignParameters)
+           paramFormatterState = formatterState.indent(paramIndent)
       } else if (containsNewline(firstParam) && alignParameters) {
+        println(relativeToken)
         paramFormatterState = formatterState.alignWithToken(relativeToken)
       }
     }
