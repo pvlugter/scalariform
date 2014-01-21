@@ -834,17 +834,32 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
   }
 
   def formatParamClauses(paramClauses: ParamClauses, doubleIndentParams: Boolean = false)(implicit formatterState: FormatterState): FormatResult = {
-    val ParamClauses(initialNewlineOpt, paramClausesAndNewlines) = paramClauses
-    var formatResult: FormatResult = NoFormatResult
-    var currentFormatterState = formatterState
-    var index = 0
-    for ((paramClause, newlineOption) ← paramClausesAndNewlines) { // TODO: Newlines. // maybe already done in some cases by format(tmplDef)?
-      val (paramClauseFormatResult, newFormatterState) = formatParamClause(paramClause, index, doubleIndentParams)(currentFormatterState)
-      formatResult ++= paramClauseFormatResult
-      currentFormatterState = newFormatterState
-      index += 1
-    }
-    formatResult
+    type Params = (ParamClause, Option[Token])
+    type Result = (FormatResult, FormatterState, Option[IntertokenFormatInstruction])
+    val ParamClauses(_, paramClausesAndNewlines) = paramClauses
+    val start: Result = (FormatResult.EMPTY, formatterState, None: Option[IntertokenFormatInstruction])
+    paramClausesAndNewlines.foldLeft(start) { (accumulator: Result, current: Params) =>
+      val (result, formatterState, previousLeftFormat) = accumulator
+      val paramClause = current._1
+      val formatResult = formatParamClause(paramClause, doubleIndentParams)(formatterState)
+      val resultWithNewLines = previousLeftFormat.filter(_ => formattingPreferences(BreakMultipleParameterGroups)).map{ p =>
+        FormatResult.EMPTY.before(paramClause.lparen, p)
+      }.foldLeft(formatResult._1 ++ result) { _ ++ _ }
+
+      val wtf = for {
+        firstParam <- paramClause.firstParamOption
+        firstTokenAfterParen <- firstParam.firstTokenOption
+      } yield {
+        if (!hiddenPredecessors(firstTokenAfterParen).containsNewline)
+          paramClause.firstTokenOption
+        else
+          None
+      }
+
+      val currentLeftFormat = Some(EnsureNewlineAndIndent(formatterState.indent.indentLevel, wtf.flatten))
+      formattingPreferences.indentStyle
+      (resultWithNewLines, formatResult._2, currentLeftFormat)
+    }._1
   }
 
   private type EitherAlignableParam = Either[ConsecutiveSingleLineParams, Param]
@@ -1027,7 +1042,7 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
   }
 
   // TODO: figure out how to preserve relative indentation when first param is on first line,
-  private def formatParamClause(paramClause: ParamClause, clauseIndex: Int, doubleIndentParams: Boolean = false)(implicit formatterState: FormatterState): (FormatResult, FormatterState) = {
+  private def formatParamClause(paramClause: ParamClause, doubleIndentParams: Boolean = false)(implicit formatterState: FormatterState): (FormatResult, FormatterState) = {
     val ParamClause(lparen, implicitOption, firstParamOption, otherParams, rparen) = paramClause
     val paramIndent = if (doubleIndentParams) 2 else 1
     val relativeToken = paramClause.tokens(1) // TODO
