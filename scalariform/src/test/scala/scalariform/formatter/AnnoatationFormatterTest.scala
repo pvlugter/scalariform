@@ -3,9 +3,6 @@ package scalariform.formatter
 import scalariform.parser.{CompilationUnit, ScalaParser}
 import scalariform.formatter.preferences.{ForceAnnotationToNextLine, IndentPackageBlocks, FormattingPreferences}
 
-/**
- * Created by bambucha on 02.03.14.
- */
 class AnnoatationFormatterTest extends AbstractFormatterTest {
 
   override def debug: Boolean = false

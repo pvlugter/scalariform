@@ -194,7 +194,7 @@ forceAnnotationToNextLine
 
 Default: ``false``
 
-Insert next line after annotation
+Insert new line after annotation
 
 Start code::
 
