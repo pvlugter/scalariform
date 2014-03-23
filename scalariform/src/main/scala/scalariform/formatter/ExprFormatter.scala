@@ -972,18 +972,25 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     val Param(annotations, modifiers, valOrVarOpt, id, paramTypeOpt, defaultValueOpt) = param
 
     val formattedParam = formattedAstNode(param) {
-      format(param, startWithNewLine && formattingPreferences(ForceAnnotationToNextLine))(formatterState)
+      format(param, false)(formatterState)
     }
 
     def calculateLengths: ParamSectionLengths = {
       def calculatePrefixLength: Int = {
         // Calculate longest "prefix" length. Annotations, modifiers, and val/var contribute
         // to this number.
-        val allPrefixTokens =
-          annotations.flatMap(_.tokens) ++
-            modifiers.flatMap(_.tokens) ++
-            valOrVarOpt
+        val allPrefixTokens = {
+           val partialPrefix = modifiers.flatMap(_.tokens) ++
+           valOrVarOpt
+
+          if (startWithNewLine)
+            partialPrefix
+          else
+            partialPrefix ++ annotations.flatMap(_.tokens)
+        }
+
         var prefixLength = 0
+
         allPrefixTokens.filter(!_.isNewline).foreach {
           prefixLength += _.length
         }
@@ -1073,7 +1080,10 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
       val paramIsAlignable = alignParameters && (!isFirstParam || firstParamAlignable)
 
       if (alignParameters && paramIsAlignable) {
-        val breakAnnotation = paramToAppend.annotations.headOption.foldLeft(false){ (result,annotation) =>  result || newlineBefore(annotation.at)}
+        val breakAnnotation = paramToAppend.annotations.headOption.foldLeft(false) { (_ ,annotation) =>
+          newlineBefore(annotation.at) && formattingPreferences(ForceAnnotationToNextLine)
+        }
+
         calculateParamSectionLengths(paramToAppend, isFirstParam, breakAnnotation) match {
           case Some(sectionLengths) ⇒
             groupedParams match {
@@ -1102,6 +1112,7 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
           case None ⇒
             Right(paramToAppend) :: groupedParams
         }
+
       } else {
         Right(paramToAppend) :: groupedParams
       }
@@ -1120,11 +1131,11 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
   private def formatParamClause(paramClause: ParamClause, doubleIndentParams: Boolean = false)(implicit formatterState: FormatterState): (FormatResult, FormatterState) = {
     val ParamClause(lparen, implicitOption, firstParamOption, otherParams, rparen) = paramClause
     val paramIndent = if (doubleIndentParams) 2 else 1
-    val relativeToken = paramClause.tokens(1) // TODO
     var formatResult: FormatResult = NoFormatResult
     var paramFormatterState = formatterState
     val alignParameters = formattingPreferences(AlignParameters) && !formattingPreferences(IndentWithTabs)
     val forceAnnotation = formattingPreferences(ForceAnnotationToNextLine)
+    val relativeToken = paramClause.tokens(1)
 
     /* Force a newline for the first argument if this is a set of
      *   multi line arguments:
@@ -1168,7 +1179,6 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
     }
 
     val startWithNewLineAndForceAnnotationToNext = firstTokenIsOnNewline && forceAnnotation
-
     for (firstParam ← firstGroupedParamOption) {
       maxSectionLengthsOption match {
         case Some(lengths) ⇒
@@ -1184,13 +1194,18 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
         case None ⇒
           alignFirstParam(firstParam)
       }
-      formatResult ++= format(firstParam, startWithNewLineAndForceAnnotationToNext)(paramFormatterState)
+      formatResult ++= format(
+        firstParam,
+        forceAnnotationToNextLine = startWithNewLineAndForceAnnotationToNext,
+        alignParams = alignParameters,
+        isFirstParam = true
+      )(paramFormatterState)
     }
 
     otherGroupedParams.foreach {
       case Left(ConsecutiveSingleLineParams(params, maxSectionLengths, thisSectionLengths)) ⇒
         params.foreach { param ⇒
-          val firstToken = param.firstToken
+          val firstToken = firstTokenFromParam(param)
 
           // Indent prefixes (annotations, modifiers, and id)
           alignOtherParams(firstToken)
@@ -1201,11 +1216,34 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
           // Indent Default
           indentDefault(param, maxSectionLengths)
 
-          formatResult ++= format(param, startWithNewLineAndForceAnnotationToNext)(paramFormatterState)
+          formatResult ++= format(
+            param,
+            forceAnnotationToNextLine = startWithNewLineAndForceAnnotationToNext,
+            alignParams = alignParameters
+          )(paramFormatterState)
         }
+
       case Right(param) ⇒
-        alignOtherParams(param.firstToken)
-        formatResult ++= format(param, startWithNewLineAndForceAnnotationToNext)(paramFormatterState)
+        alignOtherParams(firstTokenFromParam(param))
+        formatResult ++= format(
+          param,
+          forceAnnotationToNextLine = startWithNewLineAndForceAnnotationToNext,
+          alignParams = alignParameters
+        )(paramFormatterState)
+    }
+
+    def firstTokenFromParam(param: Param): Token = {
+      val token = param.firstToken
+      val t = if (token.tokenType == AT && startWithNewLineAndForceAnnotationToNext) {
+        param.valOrVarOpt.getOrElse {
+          param.modifiers.headOption.map(_.firstToken).getOrElse {
+            param.valOrVarOpt.getOrElse(param.id)
+          }
+        }
+      } else {
+        token
+      }
+      t
     }
 
     def alignFirstParam(firstParam: Param) = {
@@ -1215,7 +1253,8 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
           formatResult = formatResult.before(implicitToken, paramFormatterState.indent(paramIndent).currentIndentLevelInstruction)
       }
 
-      val firstToken = firstParam.firstToken
+      val firstToken = firstTokenFromParam(firstParam)
+
       val implicitOrFirstToken = implicitOption getOrElse firstToken
 
       if (alignParameters)
@@ -1232,7 +1271,10 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
     def alignOtherParams(firstToken: Token) = {
       if (hiddenPredecessors(firstToken).containsNewline) {
-        paramFormatterState = if (alignParameters) formatterState.alignWithToken(relativeToken) else formatterState.indent(paramIndent)
+        paramFormatterState = if (alignParameters)
+          formatterState.alignWithToken(relativeToken)
+        else
+          formatterState.indent(paramIndent)
         formatResult = formatResult.before(firstToken, paramFormatterState.currentIndentLevelInstruction)
       }
     }
@@ -1245,7 +1287,9 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
           PlaceAtColumn(
             0,
             typeSpaces,
-            paramFormatterState.indentRelativeToTokenOption))
+            paramFormatterState.indentRelativeToTokenOption
+          )
+        )
       }
     }
 
@@ -1268,19 +1312,40 @@ trait ExprFormatter { self: HasFormattingPreferences with AnnotationFormatter wi
 
   }
 
-  private def format(param: Param, forceAnnotationToNextLine: Boolean)(implicit formatterState: FormatterState): FormatResult = {
+  private def format(
+    param: Param,
+    forceAnnotationToNextLine: Boolean = false,
+    alignParams: Boolean = false,
+    isFirstParam: Boolean = false
+  )(implicit formatterState: FormatterState): FormatResult = {
     val Param(annotations: List[Annotation], modifiers: List[Modifier], valOrVarOpt: Option[Token], id: Token, paramTypeOpt: Option[(Token, Type)], defaultValueOpt: Option[(Token, Expr)]) = param
     var formatResult: FormatResult = NoFormatResult
 
     for (annotation ← annotations) {
       formatResult ++= format(annotation)
-      if(forceAnnotationToNextLine){
-        formatResult ++= formatResult.before(annotation.at, formatterState.currentIndentLevelInstruction)
-      }
+
+      // Place each annotation on its own line
+//      if(forceAnnotationToNextLine){
+//        val instruction = if (isFirstParam && alignParams || !alignParams) {
+//          formatterState.nextIndentLevelInstruction
+//        } else {
+//          formatterState.currentIndentLevelInstruction
+//        }
+//
+//        formatResult ++= formatResult.before(annotation.at, instruction)
+//      }
     }
-    if(forceAnnotationToNextLine && !annotations.isEmpty){
-      formatResult ++= formatResult.before(id, formatterState.currentIndentLevelInstruction)
-    }
+
+    // Place first non-annotation token on its own line
+//    if(forceAnnotationToNextLine && !annotations.isEmpty){
+//      val instruction = if (alignParams) {
+//        formatterState.currentIndentLevelInstruction
+//      } else {
+//        formatterState.nextIndentLevelInstruction
+//      }
+//      formatResult ++= formatResult.before(id, instruction)
+//    }
+
     for ((colon, paramType) ← paramTypeOpt) {
       formatResult ++= format(paramType)
     }
