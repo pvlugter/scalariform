@@ -12,10 +12,10 @@ object ScalariformBuild extends Build {
   lazy val commonSettings = Defaults.defaultSettings ++ SbtScalariform.defaultScalariformSettings ++ Seq(
     organization := "org.scalariform",
     version := "0.1.5-SNAPSHOT",
-    scalaVersion := "2.10.0",
+    scalaVersion := "2.10.5",
     crossScalaVersions := Seq(
       //      "2.11.0-M2",
-      "2.10.0", "2.10.1",
+      "2.10.5",
       "2.9.3", "2.9.2", "2.9.1-1", "2.9.1", "2.9.0-1", "2.9.0",
       "2.8.2", "2.8.1", "2.8.0"),
     exportJars := true, // Needed for cli oneJar
