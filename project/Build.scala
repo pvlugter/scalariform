@@ -36,9 +36,8 @@ object ScalariformBuild extends Build {
 
   def getScalaTestDependency(scalaVersion: String) = scalaVersion match {
     case "2.8.0"  ⇒ "org.scalatest" %% "scalatest" % "1.3.1.RC2" % "test"
-    case "2.10.0" ⇒ "org.scalatest" %% "scalatest" % "1.9.1" % "test"
-    case "2.10.1" ⇒ "org.scalatest" %% "scalatest" % "1.9.1" % "test"
     case "2.9.3"  ⇒ "org.scalatest" %% "scalatest" % "1.9.1" % "test"
+    case "2.10.5" ⇒ "org.scalatest" %% "scalatest" % "1.9.1" % "test"
     case _        ⇒ "org.scalatest" %% "scalatest" % "1.7.2" % "test"
   }
 
